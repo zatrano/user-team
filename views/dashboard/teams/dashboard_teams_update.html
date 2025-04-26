@@ -1,0 +1,46 @@
+<!--begin::Container-->
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title mb-0"><strong>{{.Title}}</strong></h3>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="/dashboard/teams/update/{{.Team.ID}}">
+            <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Takım Adı</label>
+                <input type="text" class="form-control" name="name" value="{{.Team.Name}}" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Durum</label>
+                <input type="hidden" name="status" value="false">
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" type="checkbox" name="status" id="status" value="true" {{if .Team.Status}}checked{{end}}>
+                  <label class="form-check-label" for="status">
+                    <span id="statusLabel">{{if .Team.Status}}Aktif{{else}}Pasif{{end}}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+              <a href="/dashboard/teams" class="btn btn-secondary me-2">İptal</a>
+              <button type="submit" class="btn btn-primary">Kaydet</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('status').addEventListener('change', function() {
+    document.getElementById('statusLabel').textContent = this.checked ? 'Aktif' : 'Pasif';
+  });
+</script>
+<!--end::Container-->
