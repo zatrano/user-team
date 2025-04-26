@@ -5,7 +5,6 @@ import (
 	"zatrano/utils"
 
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -21,22 +20,11 @@ func GetSystemUserConfig() models.User {
 func SeedSystemUser(db *gorm.DB) error {
 	systemUserConfig := GetSystemUserConfig()
 
-	hashedPasswordBytes, err := bcrypt.GenerateFromPassword([]byte(systemUserConfig.Password), bcrypt.DefaultCost)
-	if err != nil {
-		utils.Log.Error("Sistem kullanıcısı için parola hashlenemedi",
-			zap.String("account", systemUserConfig.Account),
-			zap.Error(err),
-		)
-		return err
-	}
-	hashedPassword := string(hashedPasswordBytes)
-	utils.SLog.Debugf("Sistem kullanıcısı '%s' parolası başarıyla hash'lendi", systemUserConfig.Account)
-
 	userToSeed := models.User{
 		Name:     systemUserConfig.Name,
 		Account:  systemUserConfig.Account,
 		Type:     systemUserConfig.Type,
-		Password: hashedPassword,
+		Password: systemUserConfig.Password,
 		Status:   true,
 	}
 
@@ -46,29 +34,21 @@ func SeedSystemUser(db *gorm.DB) error {
 	if result.Error == nil {
 		utils.SLog.Infof("Sistem kullanıcısı '%s' zaten mevcut. Güncelleme gerekip gerekmediği kontrol ediliyor...", userToSeed.Account)
 
-		pwMatchErr := bcrypt.CompareHashAndPassword([]byte(existingUser.Password), []byte(systemUserConfig.Password))
-		needsUpdate := false
 		updateFields := make(map[string]interface{})
+		needsUpdate := false
 
-		if pwMatchErr != nil {
-			utils.SLog.Infof("Sistem kullanıcısı '%s' parolası güncellenmeli.", userToSeed.Account)
-			updateFields["password"] = hashedPassword
-			needsUpdate = true
-		}
 		if existingUser.Name != userToSeed.Name {
-			utils.SLog.Infof("Sistem kullanıcısı '%s' adı güncellenmeli.", userToSeed.Account)
 			updateFields["name"] = userToSeed.Name
 			needsUpdate = true
 		}
 		if !existingUser.Status {
-			utils.SLog.Infof("Sistem kullanıcısı '%s' durumu güncellenmeli (true olarak ayarlanıyor).", userToSeed.Account)
 			updateFields["status"] = true
 			needsUpdate = true
 		}
 
 		if needsUpdate {
 			utils.SLog.Infof("Mevcut sistem kullanıcısı '%s' güncelleniyor...", userToSeed.Account)
-			err = db.Model(&existingUser).Updates(updateFields).Error
+			err := db.Model(&existingUser).Updates(updateFields).Error
 			if err != nil {
 				utils.Log.Error("Mevcut sistem kullanıcısı güncellenemedi",
 					zap.String("account", userToSeed.Account),
@@ -91,7 +71,7 @@ func SeedSystemUser(db *gorm.DB) error {
 	}
 
 	utils.SLog.Infof("Sistem kullanıcısı '%s' bulunamadı. Oluşturuluyor...", userToSeed.Account)
-	err = db.Create(&userToSeed).Error
+	err := db.Create(&userToSeed).Error
 	if err != nil {
 		utils.Log.Error("Sistem kullanıcısı oluşturulamadı",
 			zap.String("account", userToSeed.Account),
