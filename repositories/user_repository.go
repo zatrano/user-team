@@ -32,7 +32,7 @@ func (r *UserRepository) FindAndPaginate(params utils.ListParams) ([]models.User
 	var users []models.User
 	var totalCount int64
 
-	query := r.db.Model(&models.User{})
+	query := r.db.Model(&models.User{}).Where("id != ?", 1)
 
 	if params.Name != "" {
 		sqlQueryFragment, queryParams := utils.SQLFilter("name", params.Name)
