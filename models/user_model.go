@@ -14,11 +14,11 @@ func (e ModelError) Error() string {
 
 const (
 	ErrSystemUserHasTeam        ModelError = "sistem kullanıcısının (system user) bir takımı olamaz (TeamID NULL olmalı)"
-	ErrUserMissingTeam          ModelError = "yönetici (manager) veya temsilci (agent) kullanıcısının bir takımı olmalı (TeamID boş olamaz)" // Create için geçerli
+	ErrUserMissingTeam          ModelError = "yönetici (manager) veya temsilci (agent) kullanıcısının bir takımı olmalı (TeamID boş olamaz)"
 	ErrInvalidUserType          ModelError = "geçersiz kullanıcı tipi (UserType)"
 	ErrPasswordCannotBeEmpty    ModelError = "şifre boş olamaz"
-	ErrInvalidUpdateTypeField   ModelError = "güncelleme verisinde geçersiz 'type' alanı tipi"    // Update için
-	ErrInvalidUpdateTeamIDField ModelError = "güncelleme verisinde geçersiz 'team_id' alanı tipi" // Update için
+	ErrInvalidUpdateTypeField   ModelError = "güncelleme verisinde geçersiz 'type' alanı tipi"
+	ErrInvalidUpdateTeamIDField ModelError = "güncelleme verisinde geçersiz 'team_id' alanı tipi"
 )
 
 type UserType string
