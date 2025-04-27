@@ -80,6 +80,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	sess.Set("user_id", user.ID)
 	sess.Set("user_type", string(user.Type))
+	sess.Set("user_status", user.Status)
 	sess.Set("user_name", user.Name)
 
 	if saveErr := sess.Save(); saveErr != nil {
@@ -94,10 +95,8 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	var redirectURL string
 	switch user.Type {
-	case models.Manager:
-		redirectURL = "/manager/home"
-	case models.Agent:
-		redirectURL = "/agent/home"
+	case models.Panel:
+		redirectURL = "/panel/home"
 	case models.System:
 		redirectURL = "/dashboard/home"
 	default:
