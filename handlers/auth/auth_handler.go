@@ -50,26 +50,23 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	user, err := h.service.Authenticate(request.Account, request.Password)
 	if err != nil {
-		// Hata mesajını belirle
-		var errMsg string // Değişkeni başta tanımla
+		var errMsg string
 		switch err {
 		case services.ErrInvalidCredentials:
 			errMsg = "Kullanıcı adı veya şifre hatalı."
 		case services.ErrUserInactive:
 			errMsg = "Hesabınız aktif değil. Lütfen yöneticinizle iletişime geçin."
 		default:
-			errMsg = "Giriş işlemi sırasında bir sorun oluştu. Lütfen tekrar deneyin." // Varsayılan mesaj
+			errMsg = "Giriş işlemi sırasında bir sorun oluştu. Lütfen tekrar deneyin."
 			utils.Log.Error("Kimlik doğrulama servisinde beklenmeyen hata",
 				zap.String("account", request.Account),
 				zap.Error(err),
 			)
 		}
-		// Mesajı set et ve yönlendir
-		_ = utils.SetFlashMessage(c, utils.FlashErrorKey, errMsg) // errMsg burada kullanılıyor
+		_ = utils.SetFlashMessage(c, utils.FlashErrorKey, errMsg)
 		return c.Redirect("/auth/login", fiber.StatusSeeOther)
 	}
 
-	// --- Başarılı giriş sonrası kod (değişiklik yok) ---
 	sess, sessionErr := utils.SessionStart(c)
 	if sessionErr != nil {
 		utils.Log.Error("Oturum başlatılamadı (Login)",
@@ -109,7 +106,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 			zap.String("account", user.Account),
 			zap.String("type", string(user.Type)),
 		)
-		_ = sess.Destroy() // Oturumu yok et
+		_ = sess.Destroy()
 		_ = utils.SetFlashMessage(c, utils.FlashErrorKey, "Hesabınız için tanımlanmış bir rol bulunamadı.")
 		return c.Redirect("/auth/login", fiber.StatusSeeOther)
 	}
@@ -124,7 +121,6 @@ func (h *AuthHandler) Profile(c *fiber.Ctx) error {
 		utils.Log.Warn("Profil: Flash mesajları alınamadı", zap.Error(flashErr))
 	}
 
-	// --- UserID alma kısmı (değişiklik yok) ---
 	userID, ok := c.Locals("userID").(uint)
 	if !ok {
 		utils.SLog.Debug("Profil: UserID locals'ta bulunamadı, session kontrol ediliyor.")
@@ -159,23 +155,22 @@ func (h *AuthHandler) Profile(c *fiber.Ctx) error {
 
 	user, err := h.service.GetUserProfile(userID)
 	if err != nil {
-		var errMsg string // Değişkeni başta tanımla
+		var errMsg string
 		if err == services.ErrUserNotFound {
 			errMsg = "Profil bilgileri bulunamadı, lütfen tekrar giriş yapın."
 			utils.Log.Warn("Profil: Kullanıcı bulunamadı", zap.Uint("user_id", userID))
-			sess, _ := utils.SessionStart(c) // Session'ı tekrar başlatmaya çalış
+			sess, _ := utils.SessionStart(c)
 			if sess != nil {
-				_ = sess.Destroy() // Kullanıcı yoksa oturumu yok et
+				_ = sess.Destroy()
 			}
 		} else {
 			errMsg = "Profil bilgileri alınırken bir hata oluştu."
 			utils.Log.Error("Profil: Kullanıcı profili alınırken hata", zap.Uint("user_id", userID), zap.Error(err))
 		}
-		_ = utils.SetFlashMessage(c, utils.FlashErrorKey, errMsg) // Kullanım
+		_ = utils.SetFlashMessage(c, utils.FlashErrorKey, errMsg)
 		return c.Redirect("/auth/login", fiber.StatusSeeOther)
 	}
 
-	// --- Başarılı profil render (değişiklik yok) ---
 	return c.Render("auth/auth_profile", fiber.Map{
 		"Title":     "Profilim",
 		"User":      user,
@@ -189,8 +184,7 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	sess, err := utils.SessionStart(c)
 	if err != nil {
 		utils.Log.Warn("Çıkış: Oturum başlatılamadı (muhtemelen zaten yok)", zap.Error(err))
-		// Oturum olmasa bile login'e yönlendirme mantıklı
-		_ = utils.SetFlashMessage(c, utils.FlashSuccessKey, "Çıkış yapıldı.") // Basit mesaj
+		_ = utils.SetFlashMessage(c, utils.FlashSuccessKey, "Çıkış yapıldı.")
 		return c.Redirect("/auth/login", fiber.StatusFound)
 	}
 
@@ -205,12 +199,10 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) UpdatePassword(c *fiber.Ctx) error {
-	// --- UserID alma kısmı (değişiklik yok) ---
 	userID, ok := c.Locals("userID").(uint)
 	if !ok {
-		// ... (session'dan alma logic'i aynı) ...
 		if !ok {
-			utils.Log.Warn("Parola Güncelleme: Session'da geçersiz veya eksik user_id", zap.Any("value", c.Locals("userID"))) // locals'ı logla
+			utils.Log.Warn("Parola Güncelleme: Session'da geçersiz veya eksik user_id", zap.Any("value", c.Locals("userID")))
 			sess, _ := utils.SessionStart(c)
 			if sess != nil {
 				_ = sess.Destroy()
@@ -220,7 +212,6 @@ func (h *AuthHandler) UpdatePassword(c *fiber.Ctx) error {
 		}
 	}
 
-	// --- Request alma ve temel validasyon (değişiklik yok) ---
 	var request struct {
 		CurrentPassword string `form:"current_password"`
 		NewPassword     string `form:"new_password"`
@@ -242,30 +233,28 @@ func (h *AuthHandler) UpdatePassword(c *fiber.Ctx) error {
 
 	err := h.service.UpdatePassword(userID, request.CurrentPassword, request.NewPassword)
 	if err != nil {
-		// Hata durumunu işle
-		var errMsg string // Değişkeni başta tanımla
+		var errMsg string
 		flashKey := utils.FlashErrorKey
-		redirectTarget := "/auth/profile" // Varsayılan hedef profil sayfası
+		redirectTarget := "/auth/profile"
 		logoutUser := false
 
 		switch err {
 		case services.ErrCurrentPasswordIncorrect:
 			errMsg = "Mevcut şifreniz hatalı."
 		case services.ErrPasswordTooShort:
-			errMsg = err.Error() // Servisten gelen hatayı kullan
+			errMsg = err.Error()
 		case services.ErrPasswordSameAsOld:
-			errMsg = err.Error() // Servisten gelen hatayı kullan
+			errMsg = err.Error()
 		case services.ErrUserNotFound:
 			errMsg = "Kullanıcı bulunamadı, lütfen tekrar giriş yapın."
 			logoutUser = true
-			redirectTarget = "/auth/login" // Hedefi login olarak değiştir
+			redirectTarget = "/auth/login"
 			utils.Log.Warn("Parola Güncelleme: Kullanıcı bulunamadı (servis hatası)", zap.Uint("user_id", userID))
 		default:
 			errMsg = "Şifre güncellenirken bilinmeyen bir hata oluştu."
 			utils.Log.Error("Parola güncelleme servisinde beklenmeyen hata", zap.Uint("user_id", userID), zap.Error(err))
 		}
 
-		// Gerekirse logout yap
 		if logoutUser {
 			sess, _ := utils.SessionStart(c)
 			if sess != nil {
@@ -273,14 +262,12 @@ func (h *AuthHandler) UpdatePassword(c *fiber.Ctx) error {
 			}
 		}
 
-		// Flash mesajı set et ve yönlendir
-		_ = utils.SetFlashMessage(c, flashKey, errMsg) // errMsg burada kullanılıyor
+		_ = utils.SetFlashMessage(c, flashKey, errMsg)
 		return c.Redirect(redirectTarget, fiber.StatusSeeOther)
 	}
 
-	// --- Başarılı güncelleme sonrası kod ---
 	flashMsg := "Şifre başarıyla güncellendi. Lütfen yeni şifrenizle tekrar giriş yapın."
-	sess, sessionErr := utils.SessionStart(c) // Session'ı al
+	sess, sessionErr := utils.SessionStart(c)
 	if sess != nil {
 		if destroyErr := sess.Destroy(); destroyErr != nil {
 			utils.Log.Error("Parola güncellendi ancak oturum yok edilemedi",
@@ -290,10 +277,9 @@ func (h *AuthHandler) UpdatePassword(c *fiber.Ctx) error {
 			flashMsg = "Şifre başarıyla güncellendi (ancak mevcut oturum sonlandırılamadı). Lütfen tekrar giriş yapın."
 		}
 	} else if sessionErr != nil {
-		// Session başlatılamadıysa da logla (nadiren olmalı)
 		utils.Log.Error("Parola güncellendi ancak oturum başlatılamadı/alınamadı", zap.Uint("user_id", userID), zap.Error(sessionErr))
 	}
 
 	_ = utils.SetFlashMessage(c, utils.FlashSuccessKey, flashMsg)
-	return c.Redirect("/auth/login", fiber.StatusFound) // Başarı durumunda her zaman login'e yönlendir
+	return c.Redirect("/auth/login", fiber.StatusFound)
 }
